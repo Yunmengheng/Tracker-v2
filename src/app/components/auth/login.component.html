@@ -1,0 +1,87 @@
+<div class="login-container">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="logo">💰</div>
+      <h1>Welcome Back</h1>
+      <p>Sign in to manage your finances</p>
+    </div>
+
+    <form (ngSubmit)="onSubmit()" class="login-form">
+      @if (error()) {
+        <div class="error-message">
+          <span class="error-icon">⚠️</span>
+          {{ error() }}
+        </div>
+      }
+
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input
+          type="email"
+          id="email"
+          [value]="email()"
+          (input)="email.set($any($event.target).value)"
+          placeholder="john@example.com"
+          required
+          autocomplete="email"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input
+          type="password"
+          id="password"
+          [value]="password()"
+          (input)="password.set($any($event.target).value)"
+          placeholder="Enter your password"
+          required
+          autocomplete="current-password"
+        />
+      </div>
+
+      <div class="form-options">
+        <label class="checkbox-label">
+          <input type="checkbox" />
+          <span>Remember me</span>
+        </label>
+        <a href="#" class="forgot-link">Forgot password?</a>
+      </div>
+
+      <button type="submit" class="btn-primary" [disabled]="loading()">
+        @if (loading()) {
+          <span class="spinner"></span>
+          Signing in...
+        } @else {
+          Sign In
+        }
+      </button>
+
+      <div class="divider">
+        <span>or</span>
+      </div>
+
+      <div class="register-link">
+        Don't have an account? <a routerLink="/register">Create one</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="login-illustration">
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>Track Expenses</h3>
+      <p>Monitor your spending with beautiful visualizations</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">💵</div>
+      <h3>Budget Planning</h3>
+      <p>Set budgets and stay on track with your goals</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📈</div>
+      <h3>Financial Reports</h3>
+      <p>Get insights with detailed financial reports</p>
+    </div>
+  </div>
+</div>

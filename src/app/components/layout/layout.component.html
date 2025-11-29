@@ -1,0 +1,24 @@
+<div class="layout">
+  <app-header></app-header>
+  
+  <div class="layout-container">
+    <aside class="sidebar">
+      <nav class="sidebar-nav">
+        @for (item of menuItems; track item.route) {
+          <a 
+            [routerLink]="item.route" 
+            routerLinkActive="active" 
+            class="nav-item"
+          >
+            <span class="nav-icon">{{ item.icon }}</span>
+            <span class="nav-label">{{ item.label }}</span>
+          </a>
+        }
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>

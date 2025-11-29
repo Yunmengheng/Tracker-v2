@@ -1,0 +1,113 @@
+<div class="budgets-page">
+  <div class="page-header">
+    <h1>Budgets</h1>
+    <button class="btn-primary" (click)="showAddModal.set(true)">+ Create Budget</button>
+  </div>
+
+  <div class="budgets-grid">
+    @for (item of budgets(); track item.budget.id) {
+      <div class="budget-card" [class.warning]="item.shouldAlert" [class.over-budget]="item.isOverBudget">
+        <div class="budget-header">
+          <div class="budget-icon">{{ getCategoryIcon(item.budget.category) }}</div>
+          <div class="budget-actions">
+            <button class="icon-btn" (click)="editBudget(item.budget)">✏️</button>
+            <button class="icon-btn delete" (click)="deleteBudget(item.budget.id)">🗑️</button>
+          </div>
+        </div>
+        <h3>{{ item.budget.name }}</h3>
+        <p class="category">{{ item.budget.category }}</p>
+        
+        <div class="budget-progress">
+          <div class="progress-bar">
+            <div class="progress-fill" 
+                 [style.width.%]="item.percentageUsed"
+                 [class.over-budget]="item.isOverBudget"
+                 [class.warning]="item.shouldAlert && !item.isOverBudget">
+            </div>
+          </div>
+          <span class="progress-text">{{ item.percentageUsed.toFixed(0) }}%</span>
+        </div>
+
+        <div class="budget-stats">
+          <div class="stat">
+            <span class="label">Spent</span>
+            <span class="value">\${{ item.budget.spent.toFixed(2) }}</span>
+          </div>
+          <div class="stat">
+            <span class="label">Budget</span>
+            <span class="value">\${{ item.budget.amount.toFixed(2) }}</span>
+          </div>
+          <div class="stat">
+            <span class="label">Remaining</span>
+            <span class="value" [class.negative]="item.remaining < 0">
+              \${{ item.remaining.toFixed(2) }}
+            </span>
+          </div>
+        </div>
+
+        <div class="budget-footer">
+          <span class="period-badge">{{ item.budget.period }}</span>
+          <span class="days-remaining">{{ item.daysRemaining }} days left</span>
+        </div>
+      </div>
+    } @empty {
+      <div class="empty-state">
+        <span class="empty-icon">💰</span>
+        <h3>No budgets yet</h3>
+        <p>Create your first budget to start tracking your expenses</p>
+        <button class="btn-primary" (click)="showAddModal.set(true)">Create Budget</button>
+      </div>
+    }
+  </div>
+
+  @if (showAddModal()) {
+    <div class="modal-overlay" (click)="closeModal()">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>{{ editingBudget() ? 'Edit Budget' : 'Create Budget' }}</h2>
+          <button class="close-btn" (click)="closeModal()">✕</button>
+        </div>
+        <form (ngSubmit)="saveBudget()" class="modal-form">
+          <div class="form-group">
+            <label>Budget Name</label>
+            <input type="text" [(ngModel)]="formName" name="name" required class="form-control" 
+                   placeholder="e.g., Monthly Food Budget" />
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <select [(ngModel)]="formCategory" name="category" required class="form-control">
+              <option value="">Select a category</option>
+              @for (cat of categories; track cat.id) {
+                <option [value]="cat.name">{{ cat.icon }} {{ cat.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Budget Amount</label>
+            <input type="number" [(ngModel)]="formAmount" name="amount" required min="0" step="0.01" 
+                   class="form-control" placeholder="0.00" />
+          </div>
+          <div class="form-group">
+            <label>Period</label>
+            <select [(ngModel)]="formPeriod" name="period" required class="form-control">
+              <option value="WEEKLY">Weekly</option>
+              <option value="MONTHLY">Monthly</option>
+              <option value="QUARTERLY">Quarterly</option>
+              <option value="YEARLY">Yearly</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Alert Threshold (%)</label>
+            <input type="number" [(ngModel)]="formAlertThreshold" name="threshold" required min="0" max="100" 
+                   class="form-control" placeholder="80" />
+            <small>You'll be alerted when spending reaches this percentage</small>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" (click)="closeModal()">Cancel</button>
+            <button type="submit" class="btn-primary">Save Budget</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</div>

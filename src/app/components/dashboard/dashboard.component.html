@@ -1,0 +1,145 @@
+<div class="dashboard">
+  <div class="dashboard-header">
+    <h1>Dashboard</h1>
+    <p class="subtitle">Welcome back! Here's your financial overview</p>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner-large"></div>
+      <p>Loading your dashboard...</p>
+    </div>
+  } @else {
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+      <div class="stat-card income-card">
+        <div class="stat-icon">💰</div>
+        <div class="stat-content">
+          <h3>Total Income</h3>
+          <p class="stat-value">${{ totalIncome().toFixed(2) }}</p>
+          <span class="stat-label">This month</span>
+        </div>
+      </div>
+
+      <div class="stat-card expense-card">
+        <div class="stat-icon">💳</div>
+        <div class="stat-content">
+          <h3>Total Expenses</h3>
+          <p class="stat-value">${{ totalExpenses().toFixed(2) }}</p>
+          <span class="stat-label">This month</span>
+        </div>
+      </div>
+
+      <div class="stat-card savings-card">
+        <div class="stat-icon">💵</div>
+        <div class="stat-content">
+          <h3>Net Savings</h3>
+          <p class="stat-value">${{ netSavings().toFixed(2) }}</p>
+          <span class="stat-label">This month</span>
+        </div>
+      </div>
+
+      <div class="stat-card rate-card">
+        <div class="stat-icon">📊</div>
+        <div class="stat-content">
+          <h3>Savings Rate</h3>
+          <p class="stat-value">{{ savingsRate().toFixed(1) }}%</p>
+          <span class="stat-label">Of income</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="card-header">
+          <h2>Income vs Expenses (Last 7 Days)</h2>
+        </div>
+        <div class="chart-container">
+          <canvas baseChart
+            [data]="lineChartData"
+            [options]="lineChartOptions"
+            [type]="'line'">
+          </canvas>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="card-header">
+          <h2>Expense by Category</h2>
+        </div>
+        <div class="chart-container">
+          <canvas baseChart
+            [data]="doughnutChartData"
+            [options]="doughnutChartOptions"
+            [type]="'doughnut'">
+          </canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Transactions & Budget Progress -->
+    <div class="dashboard-bottom">
+      <!-- Recent Transactions -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Recent Transactions</h2>
+          <a routerLink="/transactions" class="view-all-btn">View All →</a>
+        </div>
+        <div class="transactions-list">
+          @for (transaction of recentTransactions(); track transaction.id) {
+            <div class="transaction-item">
+              <div class="transaction-icon">{{ getCategoryIcon(transaction.category) }}</div>
+              <div class="transaction-info">
+                <h4>{{ transaction.description }}</h4>
+                <p>{{ transaction.category }} • {{ transaction.date | date: 'MMM d' }}</p>
+              </div>
+              <div class="transaction-amount" [class]="getTransactionClass(transaction.type)">
+                {{ transaction.type === 'INCOME' ? '+' : '-' }}${{ transaction.amount.toFixed(2) }}
+              </div>
+            </div>
+          } @empty {
+            <div class="empty-state-small">
+              <span>💳</span>
+              <p>No transactions yet</p>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Budget Progress -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Budget Progress</h2>
+          <a routerLink="/budgets" class="view-all-btn">View All →</a>
+        </div>
+        <div class="budget-list">
+          @for (budget of budgetProgress(); track budget.budget.id) {
+            <div class="budget-item">
+              <div class="budget-info">
+                <h4>{{ budget.budget.name }}</h4>
+                <p>${{ budget.budget.spent.toFixed(2) }} of ${{ budget.budget.amount.toFixed(2) }}</p>
+              </div>
+              <div class="budget-progress">
+                <div class="progress-bar">
+                  <div 
+                    class="progress-fill" 
+                    [style.width.%]="budget.percentageUsed"
+                    [class.over-budget]="budget.isOverBudget"
+                    [class.warning]="budget.shouldAlert && !budget.isOverBudget">
+                  </div>
+                </div>
+                <span class="progress-text">{{ budget.percentageUsed.toFixed(0) }}%</span>
+              </div>
+            </div>
+          } @empty {
+            <div class="empty-state-small">
+              <span>💰</span>
+              <p>No budgets set</p>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

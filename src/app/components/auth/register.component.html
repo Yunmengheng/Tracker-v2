@@ -1,0 +1,113 @@
+<div class="register-container">
+  <div class="register-card">
+    <div class="register-header">
+      <div class="logo">💰</div>
+      <h1>Create Account</h1>
+      <p>Start managing your finances today</p>
+    </div>
+
+    <form (ngSubmit)="onSubmit()" class="register-form">
+      @if (error()) {
+        <div class="error-message">
+          <span class="error-icon">⚠️</span>
+          {{ error() }}
+        </div>
+      }
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="firstName">First Name</label>
+          <input
+            type="text"
+            id="firstName"
+            [value]="firstName()"
+            (input)="firstName.set($any($event.target).value)"
+            placeholder="John"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="lastName">Last Name</label>
+          <input
+            type="text"
+            id="lastName"
+            [value]="lastName()"
+            (input)="lastName.set($any($event.target).value)"
+            placeholder="Doe"
+            required
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input
+          type="text"
+          id="username"
+          [value]="username()"
+          (input)="username.set($any($event.target).value)"
+          placeholder="johndoe"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input
+          type="email"
+          id="email"
+          [value]="email()"
+          (input)="email.set($any($event.target).value)"
+          placeholder="john@example.com"
+          required
+          autocomplete="email"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input
+          type="password"
+          id="password"
+          [value]="password()"
+          (input)="password.set($any($event.target).value)"
+          placeholder="Min. 6 characters"
+          required
+          autocomplete="new-password"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="confirmPassword">Confirm Password</label>
+        <input
+          type="password"
+          id="confirmPassword"
+          [value]="confirmPassword()"
+          (input)="confirmPassword.set($any($event.target).value)"
+          placeholder="Repeat password"
+          required
+          autocomplete="new-password"
+        />
+      </div>
+
+      <label class="terms-label">
+        <input type="checkbox" required />
+        <span>I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></span>
+      </label>
+
+      <button type="submit" class="btn-primary" [disabled]="loading()">
+        @if (loading()) {
+          <span class="spinner"></span>
+          Creating account...
+        } @else {
+          Create Account
+        }
+      </button>
+
+      <div class="login-link">
+        Already have an account? <a routerLink="/login">Sign in</a>
+      </div>
+    </form>
+  </div>
+</div>
