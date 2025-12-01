@@ -17,12 +17,26 @@ app.use(express.json());
 
 // MongoDB connection
 let db;
-MongoClient.connect(MONGODB_URI, { useUnifiedTopology: true })
+let isDbConnected = false;
+
+MongoClient.connect(MONGODB_URI)
   .then(client => {
     console.log('✅ Connected to MongoDB');
     db = client.db(DB_NAME);
+    isDbConnected = true;
   })
-  .catch(error => console.error('❌ MongoDB connection error:', error));
+  .catch(error => {
+    console.error('❌ MongoDB connection error:', error);
+    console.error('Make sure MongoDB is running on:', MONGODB_URI);
+  });
+
+// Middleware to check DB connection
+const checkDbConnection = (req, res, next) => {
+  if (!db || !isDbConnected) {
+    return res.status(503).json({ error: 'Database connection not available. Please try again.' });
+  }
+  next();
+};
 
 // Auth Middleware
 const authenticateToken = (req, res, next) => {
@@ -45,10 +59,15 @@ const authenticateToken = (req, res, next) => {
 // ========== AUTH ROUTES ==========
 
 // Register
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', checkDbConnection, async (req, res) => {
   try {
     console.log('📝 Registration attempt:', req.body.email);
     const { email, username, firstName, lastName, password } = req.body;
+    
+    // Validate required fields
+    if (!email || !username || !firstName || !lastName || !password) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
 
     // Check if user exists
     const existingUser = await db.collection('users').findOne({ email });
@@ -106,7 +125,7 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 // Login
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', checkDbConnection, async (req, res) => {
   try {
     const { email, password } = req.body;
 
