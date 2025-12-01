@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, of, BehaviorSubject, delay, map } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { Observable, BehaviorSubject, tap, catchError, throwError, map, of } from 'rxjs';
 import { Transaction, TransactionType, TransactionFilter, PaymentMethod } from '../models/transaction.model';
 import { DEFAULT_CATEGORIES } from '../models/category.model';
 import { AuthService } from './auth.service';
@@ -8,7 +9,10 @@ import { AuthService } from './auth.service';
   providedIn: 'root'
 })
 export class TransactionService {
+  private http = inject(HttpClient);
   private authService = inject(AuthService);
+  private readonly API_URL = 'http://localhost:3000/api';
+  
   private transactionsSubject = new BehaviorSubject<Transaction[]>([]);
   public transactions$ = this.transactionsSubject.asObservable();
 
@@ -22,6 +26,13 @@ export class TransactionService {
   }
 
   getTransactions(filter?: TransactionFilter): Observable<Transaction[]> {
+    if (!this.authService.getCurrentUser()) {
+      return new Observable(observer => {
+        observer.next([]);
+        observer.complete();
+      });
+    }
+
     let transactions = this.transactionsSubject.value;
 
     if (filter) {
@@ -33,48 +44,54 @@ export class TransactionService {
 
   getTransactionById(id: string): Observable<Transaction | undefined> {
     const transaction = this.transactionsSubject.value.find(t => t.id === id);
-    return of(transaction).pipe(delay(300));
+    return of(transaction);
   }
 
   addTransaction(transaction: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>): Observable<Transaction> {
     const currentUser = this.authService.getCurrentUser();
     if (!currentUser) {
-      throw new Error('User not logged in');
+      return throwError(() => new Error('User not logged in'));
     }
 
-    const newTransaction: Transaction = {
-      ...transaction,
-      id: Math.random().toString(36).substr(2, 9),
-      userId: currentUser.id,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    const transactions = [...this.transactionsSubject.value, newTransaction];
-    this.transactionsSubject.next(transactions);
-    this.saveToStorage(transactions);
-
-    return of(newTransaction).pipe(delay(500));
+    return this.http.post<Transaction>(`${this.API_URL}/transactions`, transaction).pipe(
+      tap(newTransaction => {
+        const transactions = [...this.transactionsSubject.value, newTransaction];
+        this.transactionsSubject.next(transactions);
+      }),
+      catchError(error => {
+        console.error('Add transaction error:', error);
+        return throwError(() => new Error('Failed to add transaction'));
+      })
+    );
   }
 
   updateTransaction(id: string, updates: Partial<Transaction>): Observable<Transaction> {
-    const transactions = this.transactionsSubject.value.map(t =>
-      t.id === id ? { ...t, ...updates, updatedAt: new Date() } : t
+    return this.http.put<Transaction>(`${this.API_URL}/transactions/${id}`, updates).pipe(
+      tap(updatedTransaction => {
+        const transactions = this.transactionsSubject.value.map(t =>
+          t.id === id ? { ...t, ...updatedTransaction } : t
+        );
+        this.transactionsSubject.next(transactions);
+      }),
+      catchError(error => {
+        console.error('Update transaction error:', error);
+        return throwError(() => new Error('Failed to update transaction'));
+      })
     );
-
-    this.transactionsSubject.next(transactions);
-    this.saveToStorage(transactions);
-
-    const updated = transactions.find(t => t.id === id)!;
-    return of(updated).pipe(delay(500));
   }
 
   deleteTransaction(id: string): Observable<boolean> {
-    const transactions = this.transactionsSubject.value.filter(t => t.id !== id);
-    this.transactionsSubject.next(transactions);
-    this.saveToStorage(transactions);
-
-    return of(true).pipe(delay(500));
+    return this.http.delete<{success: boolean}>(`${this.API_URL}/transactions/${id}`).pipe(
+      tap(() => {
+        const transactions = this.transactionsSubject.value.filter(t => t.id !== id);
+        this.transactionsSubject.next(transactions);
+      }),
+      map(() => true),
+      catchError(error => {
+        console.error('Delete transaction error:', error);
+        return throwError(() => new Error('Failed to delete transaction'));
+      })
+    );
   }
 
   getRecentTransactions(limit: number = 10): Observable<Transaction[]> {
@@ -126,50 +143,20 @@ export class TransactionService {
     const currentUser = this.authService.getCurrentUser();
     
     if (!currentUser) {
-      // No user logged in, clear transactions
       this.transactionsSubject.next([]);
       return;
     }
 
-    const stored = localStorage.getItem('transactions');
-    if (stored) {
-      try {
-        const allTransactions = JSON.parse(stored);
-        // Filter to only show current user's transactions
-        const userTransactions = allTransactions.filter((t: Transaction) => t.userId === currentUser.id);
-        this.transactionsSubject.next(userTransactions);
-        return;
-      } catch (e) {
-        // If parsing fails, start with empty array
-        this.transactionsSubject.next([]);
-      }
-    } else {
-      // No stored transactions, start with empty array
-      this.transactionsSubject.next([]);
-    }
-  }
-
-  private saveToStorage(transactions: Transaction[]): void {
-    const currentUser = this.authService.getCurrentUser();
-    if (!currentUser) return;
-
-    // Load all transactions from storage
-    const stored = localStorage.getItem('transactions');
-    let allTransactions: Transaction[] = [];
-    
-    if (stored) {
-      try {
-        allTransactions = JSON.parse(stored);
-        // Remove current user's old transactions
-        allTransactions = allTransactions.filter(t => t.userId !== currentUser.id);
-      } catch (e) {
-        allTransactions = [];
-      }
-    }
-
-    // Add current user's updated transactions
-    allTransactions = [...allTransactions, ...transactions];
-    
-    localStorage.setItem('transactions', JSON.stringify(allTransactions));
+    this.http.get<Transaction[]>(`${this.API_URL}/transactions`).pipe(
+      catchError(error => {
+        console.error('Load transactions error:', error);
+        return new Observable<Transaction[]>(observer => {
+          observer.next([]);
+          observer.complete();
+        });
+      })
+    ).subscribe(transactions => {
+      this.transactionsSubject.next(transactions);
+    });
   }
 }

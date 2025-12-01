@@ -1,0 +1,3 @@
+com\financialtracker\gateway\filter\JwtAuthenticationFilter.class
+com\financialtracker\gateway\ApiGatewayApplication.class
+com\financialtracker\gateway\filter\JwtAuthenticationFilter$Config.class

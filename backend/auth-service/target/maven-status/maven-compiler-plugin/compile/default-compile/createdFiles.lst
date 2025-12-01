@@ -1,0 +1,2 @@
+com\financialtracker\auth\repository\UserRepository.class
+com\financialtracker\auth\model\User.class

@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, of, BehaviorSubject, delay } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { Observable, of, BehaviorSubject, tap, catchError, throwError, map } from 'rxjs';
 import { Budget, BudgetPeriod, BudgetProgress } from '../models/budget.model';
 import { AuthService } from './auth.service';
 
@@ -7,9 +8,11 @@ import { AuthService } from './auth.service';
   providedIn: 'root'
 })
 export class BudgetService {
+  private http = inject(HttpClient);
   private authService = inject(AuthService);
   private budgetsSubject = new BehaviorSubject<Budget[]>([]);
   public budgets$ = this.budgetsSubject.asObservable();
+  private API_URL = 'http://localhost:3000/api';
 
   constructor() {
     this.loadBudgets();
@@ -26,61 +29,56 @@ export class BudgetService {
 
   getBudgetById(id: string): Observable<Budget | undefined> {
     const budget = this.budgetsSubject.value.find(b => b.id === id);
-    return of(budget).pipe(delay(300));
+    return of(budget);
   }
 
   addBudget(budget: Omit<Budget, 'id' | 'spent' | 'createdAt' | 'updatedAt'>): Observable<Budget> {
-    const currentUser = this.authService.getCurrentUser();
-    if (!currentUser) {
-      throw new Error('User not logged in');
-    }
-
-    const newBudget: Budget = {
-      ...budget,
-      id: Math.random().toString(36).substr(2, 9),
-      userId: currentUser.id,
-      spent: 0,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    const budgets = [...this.budgetsSubject.value, newBudget];
-    this.budgetsSubject.next(budgets);
-    this.saveToStorage(budgets);
-
-    return of(newBudget).pipe(delay(500));
+    return this.http.post<Budget>(`${this.API_URL}/budgets`, budget).pipe(
+      tap(newBudget => {
+        const budgets = [...this.budgetsSubject.value, newBudget];
+        this.budgetsSubject.next(budgets);
+      }),
+      catchError(error => {
+        console.error('Add budget error:', error);
+        return throwError(() => new Error('Failed to add budget'));
+      })
+    );
   }
 
   updateBudget(id: string, updates: Partial<Budget>): Observable<Budget> {
-    const budgets = this.budgetsSubject.value.map(b =>
-      b.id === id ? { ...b, ...updates, updatedAt: new Date() } : b
+    return this.http.put<Budget>(`${this.API_URL}/budgets/${id}`, updates).pipe(
+      tap(updatedBudget => {
+        const budgets = this.budgetsSubject.value.map(b =>
+          b.id === id ? updatedBudget : b
+        );
+        this.budgetsSubject.next(budgets);
+      }),
+      catchError(error => {
+        console.error('Update budget error:', error);
+        return throwError(() => new Error('Failed to update budget'));
+      })
     );
-
-    this.budgetsSubject.next(budgets);
-    this.saveToStorage(budgets);
-
-    const updated = budgets.find(b => b.id === id)!;
-    return of(updated).pipe(delay(500));
   }
 
   deleteBudget(id: string): Observable<boolean> {
-    const budgets = this.budgetsSubject.value.filter(b => b.id !== id);
-    this.budgetsSubject.next(budgets);
-    this.saveToStorage(budgets);
-
-    return of(true).pipe(delay(500));
+    return this.http.delete<{success: boolean}>(`${this.API_URL}/budgets/${id}`).pipe(
+      tap(() => {
+        const budgets = this.budgetsSubject.value.filter(b => b.id !== id);
+        this.budgetsSubject.next(budgets);
+      }),
+      map(() => true),
+      catchError(error => {
+        console.error('Delete budget error:', error);
+        return throwError(() => new Error('Failed to delete budget'));
+      })
+    );
   }
 
   updateBudgetSpent(category: string, amount: number): void {
-    const budgets = this.budgetsSubject.value.map(b => {
-      if (b.category === category) {
-        return { ...b, spent: b.spent + amount, updatedAt: new Date() };
-      }
-      return b;
-    });
-
-    this.budgetsSubject.next(budgets);
-    this.saveToStorage(budgets);
+    const budget = this.budgetsSubject.value.find(b => b.category === category);
+    if (budget) {
+      this.updateBudget(budget.id, { spent: budget.spent + amount }).subscribe();
+    }
   }
 
   getBudgetProgress(budgetId: string): Observable<BudgetProgress | null> {
@@ -137,50 +135,17 @@ export class BudgetService {
     const currentUser = this.authService.getCurrentUser();
     
     if (!currentUser) {
-      // No user logged in, clear budgets
       this.budgetsSubject.next([]);
       return;
     }
 
-    const stored = localStorage.getItem('budgets');
-    if (stored) {
-      try {
-        const allBudgets = JSON.parse(stored);
-        // Filter to only show current user's budgets
-        const userBudgets = allBudgets.filter((b: Budget) => b.userId === currentUser.id);
-        this.budgetsSubject.next(userBudgets);
-        return;
-      } catch (e) {
-        // If parsing fails, start with empty array
-        this.budgetsSubject.next([]);
-      }
-    } else {
-      // No stored budgets, start with empty array
-      this.budgetsSubject.next([]);
-    }
-  }
-
-  private saveToStorage(budgets: Budget[]): void {
-    const currentUser = this.authService.getCurrentUser();
-    if (!currentUser) return;
-
-    // Load all budgets from storage
-    const stored = localStorage.getItem('budgets');
-    let allBudgets: Budget[] = [];
-    
-    if (stored) {
-      try {
-        allBudgets = JSON.parse(stored);
-        // Remove current user's old budgets
-        allBudgets = allBudgets.filter(b => b.userId !== currentUser.id);
-      } catch (e) {
-        allBudgets = [];
-      }
-    }
-
-    // Add current user's updated budgets
-    allBudgets = [...allBudgets, ...budgets];
-    
-    localStorage.setItem('budgets', JSON.stringify(allBudgets));
+    this.http.get<Budget[]>(`${this.API_URL}/budgets`).pipe(
+      catchError(error => {
+        console.error('Load budgets error:', error);
+        return of([]);
+      })
+    ).subscribe(budgets => {
+      this.budgetsSubject.next(budgets);
+    });
   }
 }

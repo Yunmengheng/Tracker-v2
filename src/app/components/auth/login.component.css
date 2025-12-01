@@ -1,12 +1,10 @@
 .login-container {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 2rem 2rem;
-  gap: 1.5rem;
+  padding: 2rem;
 }
 
 .login-card {
@@ -204,57 +202,20 @@
 }
 
 .login-illustration {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  width: 100%;
-  max-width: 1000px;
-}
-
-.feature-card {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  padding: 1rem 1.5rem;
-  border-radius: 15px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  text-align: center;
-  width: 100%;
-  max-width: 350px;
-  transition: transform 0.3s ease, background 0.3s ease;
-}
-
-.feature-card:hover {
-  transform: translateY(-5px);
-}
-
-.feature-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-}
-
-.feature-card h3 {
-  font-size: 1.3rem;
-  margin-bottom: 0.5rem;
-}
-
-.feature-card p {
-  font-size: 0.9rem;
-  opacity: 0.9;
+  display: none;
 }
 
 @media (max-width: 768px) {
   .login-container {
-    padding: 2rem 1rem;
-    gap: 2rem;
+    padding: 1rem;
   }
 
   .login-card {
     max-width: 100%;
+    padding: 1.5rem;
   }
-
-  .feature-card {
-    max-width: 100%;
+  
+  .login-header h1 {
+    font-size: 1.5rem;
   }
 }
