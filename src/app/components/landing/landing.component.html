@@ -1,0 +1,89 @@
+<div class="landing-container">
+  <!-- Hero Section -->
+  <header class="hero">
+    <nav class="navbar">
+      <div class="logo">
+        <span class="logo-icon">💰</span>
+        <span class="logo-text">Financial Tracker</span>
+      </div>
+      <div class="nav-buttons">
+        <a routerLink="/login" class="btn btn-secondary">Sign In</a>
+        <a routerLink="/register" class="btn btn-primary">Get Started</a>
+      </div>
+    </nav>
+
+    <div class="hero-content">
+      <h1 class="hero-title">Take Control of Your Finances</h1>
+      <p class="hero-subtitle">
+        Track expenses, manage budgets, and achieve your financial goals with our powerful yet simple platform
+      </p>
+      <div class="hero-actions">
+        <a routerLink="/register" class="btn btn-large btn-primary">Start Free Today</a>
+        <a routerLink="/login" class="btn btn-large btn-outline">Sign In</a>
+      </div>
+      <div class="hero-image">
+        <div class="dashboard-preview">
+          <div class="preview-card">
+            <div class="card-icon">📊</div>
+            <div class="card-content">
+              <div class="card-title">Monthly Overview</div>
+              <div class="card-value">$2,450</div>
+            </div>
+          </div>
+          <div class="preview-card">
+            <div class="card-icon">💵</div>
+            <div class="card-content">
+              <div class="card-title">Expenses</div>
+              <div class="card-value">$1,230</div>
+            </div>
+          </div>
+          <div class="preview-card">
+            <div class="card-icon">🎯</div>
+            <div class="card-content">
+              <div class="card-title">Budget</div>
+              <div class="card-value">75%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Features Section -->
+  <section class="features">
+    <div class="section-header">
+      <h2>Everything You Need to Manage Your Money</h2>
+      <p>Powerful features to help you stay on top of your finances</p>
+    </div>
+    
+    <div class="features-grid">
+      @for (feature of features; track feature.title) {
+        <div class="feature-card">
+          <div class="feature-icon">{{ feature.icon }}</div>
+          <h3>{{ feature.title }}</h3>
+          <p>{{ feature.description }}</p>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta">
+    <div class="cta-content">
+      <h2>Ready to Start Your Financial Journey?</h2>
+      <p>Join thousands of users who are already managing their finances better</p>
+      <a routerLink="/register" class="btn btn-large btn-white">Create Free Account</a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <span class="logo-icon">💰</span>
+        <span class="logo-text">Financial Tracker</span>
+      </div>
+      <p class="footer-text">© 2025 Financial Tracker. All rights reserved.</p>
+    </div>
+  </footer>
+</div>
