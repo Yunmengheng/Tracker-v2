@@ -6,6 +6,7 @@ import { LayoutComponent } from './components/layout/layout.component';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { TransactionsComponent } from './components/transactions/transactions.component';
 import { BudgetsComponent } from './components/budgets/budgets.component';
+import { ProfileComponent } from './components/profile/profile.component';
 import { inject } from '@angular/core';
 import { AuthService } from './services/auth.service';
 import { Router } from '@angular/router';
@@ -35,9 +36,8 @@ export const routes: Routes = [
       { path: 'dashboard', component: DashboardComponent },
       { path: 'transactions', component: TransactionsComponent },
       { path: 'budgets', component: BudgetsComponent },
-      { path: 'reports', component: DashboardComponent }, // Reuse dashboard for now
-      { path: 'profile', component: DashboardComponent }, // Placeholder
-      { path: 'settings', component: DashboardComponent } // Placeholder
+      { path: 'profile', component: ProfileComponent },
+      { path: 'settings', component: ProfileComponent }
     ]
   }
 ];

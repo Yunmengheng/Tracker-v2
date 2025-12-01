@@ -15,7 +15,6 @@ export class LayoutComponent {
     { icon: '📊', label: 'Dashboard', route: '/dashboard' },
     { icon: '💳', label: 'Transactions', route: '/transactions' },
     { icon: '💰', label: 'Budgets', route: '/budgets' },
-    { icon: '📈', label: 'Reports', route: '/reports' },
     { icon: '👤', label: 'Profile', route: '/profile' }
   ];
 }
