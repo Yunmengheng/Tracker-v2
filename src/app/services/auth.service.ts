@@ -1,6 +1,6 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { Observable, of, BehaviorSubject, delay, map } from 'rxjs';
-import { User, LoginRequest, RegisterRequest, AuthToken } from '../models/user.model';
+import { User, LoginRequest, RegisterRequest } from '../models/user.model';
 
 @Injectable({
   providedIn: 'root'
@@ -13,19 +13,18 @@ export class AuthService {
   public isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
 
   constructor() {
-    // Check if user is already logged in (from localStorage)
     this.loadUserFromStorage();
   }
 
   login(credentials: LoginRequest): Observable<User> {
-    // Simulated login - in real app, this would call backend API
+    // Mock login - for demo purposes
     const mockUser: User = {
       id: '1',
       email: credentials.email,
       username: credentials.email.split('@')[0],
       firstName: 'John',
       lastName: 'Doe',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + credentials.email,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${credentials.email}`,
       createdAt: new Date(),
       updatedAt: new Date(),
       preferences: {
@@ -38,7 +37,7 @@ export class AuthService {
     };
 
     return of(mockUser).pipe(
-      delay(800), // Simulate network delay
+      delay(800),
       map(user => {
         this.setCurrentUser(user);
         return user;
@@ -47,14 +46,14 @@ export class AuthService {
   }
 
   register(data: RegisterRequest): Observable<User> {
-    // Simulated registration
+    // Mock registration
     const mockUser: User = {
       id: Math.random().toString(36).substr(2, 9),
       email: data.email,
       username: data.username,
       firstName: data.firstName,
       lastName: data.lastName,
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + data.email,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.email}`,
       createdAt: new Date(),
       updatedAt: new Date(),
       preferences: {
@@ -101,10 +100,6 @@ export class AuthService {
     );
   }
 
-  isAuthenticated(): boolean {
-    return this.isAuthenticatedSubject.value;
-  }
-
   private setCurrentUser(user: User): void {
     this.currentUserSubject.next(user);
     this.isAuthenticatedSubject.next(true);
@@ -112,15 +107,19 @@ export class AuthService {
   }
 
   private loadUserFromStorage(): void {
-    const userJson = localStorage.getItem('currentUser');
-    if (userJson) {
+    const stored = localStorage.getItem('currentUser');
+    if (stored) {
       try {
-        const user = JSON.parse(userJson);
+        const user = JSON.parse(stored);
         this.currentUserSubject.next(user);
         this.isAuthenticatedSubject.next(true);
-      } catch (e) {
+      } catch {
         localStorage.removeItem('currentUser');
       }
     }
+  }
+
+  isAuthenticated(): boolean {
+    return this.isAuthenticatedSubject.value;
   }
 }

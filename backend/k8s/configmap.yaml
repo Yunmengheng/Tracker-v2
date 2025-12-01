@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: financial-tracker-config
+data:
+  EUREKA_URL: "http://eureka-server:8761/eureka/"
+  MONGODB_URI: "mongodb://mongodb:27017/financial-tracker"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  JWT_SECRET: "financialTrackerSecretKeyForJWTTokenGeneration123456789"
