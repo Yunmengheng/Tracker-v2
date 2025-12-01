@@ -1,17 +1,24 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable, of, BehaviorSubject, delay, map } from 'rxjs';
 import { Transaction, TransactionType, TransactionFilter, PaymentMethod } from '../models/transaction.model';
 import { DEFAULT_CATEGORIES } from '../models/category.model';
+import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class TransactionService {
+  private authService = inject(AuthService);
   private transactionsSubject = new BehaviorSubject<Transaction[]>([]);
   public transactions$ = this.transactionsSubject.asObservable();
 
   constructor() {
-    this.loadMockTransactions();
+    this.loadTransactions();
+    
+    // Reload transactions when user logs in/out
+    this.authService.currentUser$.subscribe(user => {
+      this.loadTransactions();
+    });
   }
 
   getTransactions(filter?: TransactionFilter): Observable<Transaction[]> {
@@ -30,9 +37,15 @@ export class TransactionService {
   }
 
   addTransaction(transaction: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>): Observable<Transaction> {
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser) {
+      throw new Error('User not logged in');
+    }
+
     const newTransaction: Transaction = {
       ...transaction,
       id: Math.random().toString(36).substr(2, 9),
+      userId: currentUser.id,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -109,84 +122,54 @@ export class TransactionService {
     });
   }
 
-  private loadMockTransactions(): void {
+  private loadTransactions(): void {
+    const currentUser = this.authService.getCurrentUser();
+    
+    if (!currentUser) {
+      // No user logged in, clear transactions
+      this.transactionsSubject.next([]);
+      return;
+    }
+
     const stored = localStorage.getItem('transactions');
     if (stored) {
       try {
-        const transactions = JSON.parse(stored);
-        this.transactionsSubject.next(transactions);
+        const allTransactions = JSON.parse(stored);
+        // Filter to only show current user's transactions
+        const userTransactions = allTransactions.filter((t: Transaction) => t.userId === currentUser.id);
+        this.transactionsSubject.next(userTransactions);
         return;
       } catch (e) {
-        // Continue to load mock data
+        // If parsing fails, start with empty array
+        this.transactionsSubject.next([]);
       }
+    } else {
+      // No stored transactions, start with empty array
+      this.transactionsSubject.next([]);
     }
-
-    // Generate mock transactions for the last 30 days
-    const mockTransactions: Transaction[] = [];
-    const today = new Date();
-
-    for (let i = 0; i < 30; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-
-      // Add 2-4 transactions per day
-      const transactionsPerDay = Math.floor(Math.random() * 3) + 2;
-      
-      for (let j = 0; j < transactionsPerDay; j++) {
-        const isIncome = Math.random() > 0.7;
-        const type = isIncome ? TransactionType.INCOME : TransactionType.EXPENSE;
-        const categories = DEFAULT_CATEGORIES.filter(c => c.type === type);
-        const category = categories[Math.floor(Math.random() * categories.length)];
-
-        mockTransactions.push({
-          id: Math.random().toString(36).substr(2, 9),
-          userId: '1',
-          type,
-          category: category.name,
-          amount: parseFloat((Math.random() * (isIncome ? 2000 : 200) + (isIncome ? 500 : 10)).toFixed(2)),
-          description: this.getRandomDescription(category.name, type),
-          date,
-          paymentMethod: this.getRandomPaymentMethod(),
-          tags: [],
-          recurring: false,
-          createdAt: date,
-          updatedAt: date
-        });
-      }
-    }
-
-    this.transactionsSubject.next(mockTransactions);
-    this.saveToStorage(mockTransactions);
-  }
-
-  private getRandomDescription(category: string, type: TransactionType): string {
-    const descriptions: Record<string, string[]> = {
-      'Salary': ['Monthly Salary', 'Paycheck', 'Salary Payment'],
-      'Freelance': ['Freelance Project', 'Client Payment', 'Consulting Fee'],
-      'Food & Dining': ['Grocery Shopping', 'Restaurant', 'Coffee Shop', 'Fast Food'],
-      'Transportation': ['Gas Station', 'Uber Ride', 'Public Transport', 'Parking'],
-      'Shopping': ['Online Shopping', 'Clothing Store', 'Electronics', 'Home Decor'],
-      'Entertainment': ['Movie Tickets', 'Concert', 'Streaming Service', 'Gaming'],
-      'Bills & Utilities': ['Electricity Bill', 'Internet Bill', 'Water Bill', 'Phone Bill'],
-      'Healthcare': ['Pharmacy', 'Doctor Visit', 'Health Insurance', 'Medical Test'],
-      'Housing': ['Rent Payment', 'Mortgage', 'Home Maintenance', 'Property Tax']
-    };
-
-    const categoryDescriptions = descriptions[category] || ['Transaction'];
-    return categoryDescriptions[Math.floor(Math.random() * categoryDescriptions.length)];
-  }
-
-  private getRandomPaymentMethod(): PaymentMethod {
-    const methods = [
-      PaymentMethod.CASH,
-      PaymentMethod.CREDIT_CARD,
-      PaymentMethod.DEBIT_CARD,
-      PaymentMethod.DIGITAL_WALLET
-    ];
-    return methods[Math.floor(Math.random() * methods.length)];
   }
 
   private saveToStorage(transactions: Transaction[]): void {
-    localStorage.setItem('transactions', JSON.stringify(transactions));
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser) return;
+
+    // Load all transactions from storage
+    const stored = localStorage.getItem('transactions');
+    let allTransactions: Transaction[] = [];
+    
+    if (stored) {
+      try {
+        allTransactions = JSON.parse(stored);
+        // Remove current user's old transactions
+        allTransactions = allTransactions.filter(t => t.userId !== currentUser.id);
+      } catch (e) {
+        allTransactions = [];
+      }
+    }
+
+    // Add current user's updated transactions
+    allTransactions = [...allTransactions, ...transactions];
+    
+    localStorage.setItem('transactions', JSON.stringify(allTransactions));
   }
 }
