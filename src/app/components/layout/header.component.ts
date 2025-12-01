@@ -1,6 +1,6 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { NotificationService } from '../../services/notification.service';
 
@@ -20,7 +20,8 @@ export class HeaderComponent {
 
   constructor(
     private authService: AuthService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private router: Router
   ) {
     this.user$ = this.authService.currentUser$;
     this.unreadCount$ = this.notificationService.getUnreadCount();
@@ -47,5 +48,6 @@ export class HeaderComponent {
 
   logout(): void {
     this.authService.logout();
+    this.router.navigate(['/login']);
   }
 }

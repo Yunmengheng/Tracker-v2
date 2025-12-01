@@ -1,16 +1,23 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable, of, BehaviorSubject, delay } from 'rxjs';
 import { Budget, BudgetPeriod, BudgetProgress } from '../models/budget.model';
+import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class BudgetService {
+  private authService = inject(AuthService);
   private budgetsSubject = new BehaviorSubject<Budget[]>([]);
   public budgets$ = this.budgetsSubject.asObservable();
 
   constructor() {
-    this.loadMockBudgets();
+    this.loadBudgets();
+    
+    // Reload budgets when user logs in/out
+    this.authService.currentUser$.subscribe(user => {
+      this.loadBudgets();
+    });
   }
 
   getBudgets(): Observable<Budget[]> {
@@ -23,9 +30,15 @@ export class BudgetService {
   }
 
   addBudget(budget: Omit<Budget, 'id' | 'spent' | 'createdAt' | 'updatedAt'>): Observable<Budget> {
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser) {
+      throw new Error('User not logged in');
+    }
+
     const newBudget: Budget = {
       ...budget,
       id: Math.random().toString(36).substr(2, 9),
+      userId: currentUser.id,
       spent: 0,
       createdAt: new Date(),
       updatedAt: new Date()
@@ -120,71 +133,54 @@ export class BudgetService {
     return of(progressList);
   }
 
-  private loadMockBudgets(): void {
+  private loadBudgets(): void {
+    const currentUser = this.authService.getCurrentUser();
+    
+    if (!currentUser) {
+      // No user logged in, clear budgets
+      this.budgetsSubject.next([]);
+      return;
+    }
+
     const stored = localStorage.getItem('budgets');
     if (stored) {
       try {
-        const budgets = JSON.parse(stored);
-        this.budgetsSubject.next(budgets);
+        const allBudgets = JSON.parse(stored);
+        // Filter to only show current user's budgets
+        const userBudgets = allBudgets.filter((b: Budget) => b.userId === currentUser.id);
+        this.budgetsSubject.next(userBudgets);
         return;
       } catch (e) {
-        // Continue to load mock data
+        // If parsing fails, start with empty array
+        this.budgetsSubject.next([]);
       }
+    } else {
+      // No stored budgets, start with empty array
+      this.budgetsSubject.next([]);
     }
-
-    const today = new Date();
-    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-
-    const mockBudgets: Budget[] = [
-      {
-        id: '1',
-        userId: '1',
-        name: 'Food & Dining Budget',
-        category: 'Food & Dining',
-        amount: 500,
-        spent: 342.50,
-        period: BudgetPeriod.MONTHLY,
-        startDate: new Date(today.getFullYear(), today.getMonth(), 1),
-        endDate: endOfMonth,
-        alertThreshold: 80,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: '2',
-        userId: '1',
-        name: 'Transportation Budget',
-        category: 'Transportation',
-        amount: 300,
-        spent: 187.25,
-        period: BudgetPeriod.MONTHLY,
-        startDate: new Date(today.getFullYear(), today.getMonth(), 1),
-        endDate: endOfMonth,
-        alertThreshold: 80,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: '3',
-        userId: '1',
-        name: 'Entertainment Budget',
-        category: 'Entertainment',
-        amount: 200,
-        spent: 156.80,
-        period: BudgetPeriod.MONTHLY,
-        startDate: new Date(today.getFullYear(), today.getMonth(), 1),
-        endDate: endOfMonth,
-        alertThreshold: 85,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
-    ];
-
-    this.budgetsSubject.next(mockBudgets);
-    this.saveToStorage(mockBudgets);
   }
 
   private saveToStorage(budgets: Budget[]): void {
-    localStorage.setItem('budgets', JSON.stringify(budgets));
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser) return;
+
+    // Load all budgets from storage
+    const stored = localStorage.getItem('budgets');
+    let allBudgets: Budget[] = [];
+    
+    if (stored) {
+      try {
+        allBudgets = JSON.parse(stored);
+        // Remove current user's old budgets
+        allBudgets = allBudgets.filter(b => b.userId !== currentUser.id);
+      } catch (e) {
+        allBudgets = [];
+      }
+    }
+
+    // Add current user's updated budgets
+    allBudgets = [...allBudgets, ...budgets];
+    
+    localStorage.setItem('budgets', JSON.stringify(allBudgets));
   }
 }
