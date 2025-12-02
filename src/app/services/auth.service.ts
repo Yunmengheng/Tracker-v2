@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject, tap, catchError, throwError, map } from 'rxjs';
 import { User, LoginRequest, RegisterRequest } from '../models/user.model';
+import { environment } from '../../environments/environment';
 
 interface AuthResponse {
   token: string;
@@ -13,7 +14,7 @@ interface AuthResponse {
 })
 export class AuthService {
   private http = inject(HttpClient);
-  private readonly API_URL = 'http://localhost:3000/api';
+  private readonly API_URL = environment.apiUrl;
   
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();

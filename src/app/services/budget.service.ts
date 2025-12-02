@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of, BehaviorSubject, tap, catchError, throwError, map } from 'rxjs';
 import { Budget, BudgetPeriod, BudgetProgress } from '../models/budget.model';
 import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -12,7 +13,7 @@ export class BudgetService {
   private authService = inject(AuthService);
   private budgetsSubject = new BehaviorSubject<Budget[]>([]);
   public budgets$ = this.budgetsSubject.asObservable();
-  private API_URL = 'http://localhost:3000/api';
+  private API_URL = environment.apiUrl;
 
   constructor() {
     this.loadBudgets();

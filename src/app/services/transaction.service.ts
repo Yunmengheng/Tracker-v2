@@ -4,6 +4,7 @@ import { Observable, BehaviorSubject, tap, catchError, throwError, map, of } fro
 import { Transaction, TransactionType, TransactionFilter, PaymentMethod } from '../models/transaction.model';
 import { DEFAULT_CATEGORIES } from '../models/category.model';
 import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -11,7 +12,7 @@ import { AuthService } from './auth.service';
 export class TransactionService {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
-  private readonly API_URL = 'http://localhost:3000/api';
+  private readonly API_URL = environment.apiUrl;
   
   private transactionsSubject = new BehaviorSubject<Transaction[]>([]);
   public transactions$ = this.transactionsSubject.asObservable();
