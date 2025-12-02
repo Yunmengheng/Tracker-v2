@@ -53,6 +53,13 @@ const authenticateToken = (req, res, next) => {
 app.post('/api/auth/register', async (req, res) => {
   try {
     console.log('📝 Registration attempt:', req.body.email);
+    
+    // Check if database is connected
+    if (!db) {
+      console.error('❌ Database not connected');
+      return res.status(500).json({ error: 'Database connection not established' });
+    }
+    
     const { email, username, firstName, lastName, password } = req.body;
 
     // Check if user exists
@@ -106,7 +113,7 @@ app.post('/api/auth/register', async (req, res) => {
     });
   } catch (error) {
     console.error('Register error:', error);
-    res.status(500).json({ error: 'Registration failed' });
+    res.status(500).json({ error: 'Registration failed', details: error.message });
   }
 });
 
