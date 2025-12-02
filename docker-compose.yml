@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: financial-tracker-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=financial_tracker
+    networks:
+      - tracker-network
+
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: financial-tracker-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - MONGODB_URI=mongodb://mongodb:27017
+      - DB_NAME=financial_tracker
+      - JWT_SECRET=ae91405b9a0467041c595892412887be068ed46bbfdd7e2202307f2455d4a3bc5a233c314c860f1e27a74af00edcb327a082af4737ab406f8fffb70676b5fc52
+    depends_on:
+      - mongodb
+    networks:
+      - tracker-network
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  tracker-network:
+    driver: bridge
