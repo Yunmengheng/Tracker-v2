@@ -20,14 +20,34 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// MongoDB connection
-let db;
-MongoClient.connect(MONGODB_URI, { useUnifiedTopology: true })
-  .then(client => {
-    console.log('✅ Connected to MongoDB');
-    db = client.db(DB_NAME);
-  })
-  .catch(error => console.error('❌ MongoDB connection error:', error));
+// MongoDB connection with caching for serverless
+let cachedClient = null;
+let cachedDb = null;
+
+async function connectToDatabase() {
+  if (cachedDb && cachedClient) {
+    return { db: cachedDb, client: cachedClient };
+  }
+
+  const client = await MongoClient.connect(MONGODB_URI, {
+    serverSelectionTimeoutMS: 5000,
+    maxPoolSize: 1,
+    minPoolSize: 0,
+    ssl: true,
+    tls: true,
+    tlsAllowInvalidCertificates: false,
+    retryWrites: true,
+    w: 'majority'
+  });
+
+  const db = client.db(DB_NAME);
+  
+  cachedClient = client;
+  cachedDb = db;
+  
+  console.log('✅ Connected to MongoDB');
+  return { db, client };
+}
 
 // Auth Middleware
 const authenticateToken = (req, res, next) => {
@@ -54,12 +74,7 @@ app.post('/api/auth/register', async (req, res) => {
   try {
     console.log('📝 Registration attempt:', req.body.email);
     
-    // Check if database is connected
-    if (!db) {
-      console.error('❌ Database not connected');
-      return res.status(500).json({ error: 'Database connection not established' });
-    }
-    
+    const { db } = await connectToDatabase();
     const { email, username, firstName, lastName, password } = req.body;
 
     // Check if user exists
@@ -120,6 +135,7 @@ app.post('/api/auth/register', async (req, res) => {
 // Login
 app.post('/api/auth/login', async (req, res) => {
   try {
+    const { db } = await connectToDatabase();
     const { email, password } = req.body;
 
     // Find user
@@ -158,6 +174,7 @@ app.post('/api/auth/login', async (req, res) => {
 // Get all transactions for user
 app.get('/api/transactions', authenticateToken, async (req, res) => {
   try {
+    const { db } = await connectToDatabase();
     const transactions = await db.collection('transactions')
       .find({ userId: req.user.id })
       .sort({ date: -1 })
@@ -173,6 +190,7 @@ app.get('/api/transactions', authenticateToken, async (req, res) => {
 // Add transaction
 app.post('/api/transactions', authenticateToken, async (req, res) => {
   try {
+    const { db } = await connectToDatabase();
     const transaction = {
       ...req.body,
       userId: req.user.id,
@@ -191,6 +209,7 @@ app.post('/api/transactions', authenticateToken, async (req, res) => {
 // Update transaction
 app.put('/api/transactions/:id', authenticateToken, async (req, res) => {
   try {
+    const { db } = await connectToDatabase();
     const { id } = req.params;
     const updates = {
       ...req.body,
@@ -216,6 +235,7 @@ app.put('/api/transactions/:id', authenticateToken, async (req, res) => {
 // Delete transaction
 app.delete('/api/transactions/:id', authenticateToken, async (req, res) => {
   try {
+    const { db } = await connectToDatabase();
     const { id } = req.params;
     
     const result = await db.collection('transactions').deleteOne({
@@ -239,6 +259,7 @@ app.delete('/api/transactions/:id', authenticateToken, async (req, res) => {
 // Get all budgets for user
 app.get('/api/budgets', authenticateToken, async (req, res) => {
   try {
+    const { db } = await connectToDatabase();
     const budgets = await db.collection('budgets')
       .find({ userId: req.user.id })
       .toArray();
@@ -253,6 +274,7 @@ app.get('/api/budgets', authenticateToken, async (req, res) => {
 // Add budget
 app.post('/api/budgets', authenticateToken, async (req, res) => {
   try {
+    const { db } = await connectToDatabase();
     const budget = {
       ...req.body,
       userId: req.user.id,
@@ -272,6 +294,7 @@ app.post('/api/budgets', authenticateToken, async (req, res) => {
 // Update budget
 app.put('/api/budgets/:id', authenticateToken, async (req, res) => {
   try {
+    const { db } = await connectToDatabase();
     const { id } = req.params;
     const updates = {
       ...req.body,
@@ -297,6 +320,7 @@ app.put('/api/budgets/:id', authenticateToken, async (req, res) => {
 // Delete budget
 app.delete('/api/budgets/:id', authenticateToken, async (req, res) => {
   try {
+    const { db } = await connectToDatabase();
     const { id } = req.params;
     
     const result = await db.collection('budgets').deleteOne({
